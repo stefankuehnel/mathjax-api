@@ -1,0 +1,7 @@
+import { z } from "@hono/zod-openapi";
+
+export const ResponseSchema = z.string().openapi({
+  description: "SVG image",
+  example:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50">...</svg>',
+});

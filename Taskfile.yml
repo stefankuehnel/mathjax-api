@@ -1,0 +1,177 @@
+version: "3"
+
+dotenv:
+  - ".env"
+
+tasks:
+  default:
+    desc: "Run default task"
+    cmds:
+      - task: "build"
+
+  init:
+    desc: "Initialize project"
+    cmds:
+      - task: "init:env"
+
+  init:env:
+    desc: "Initialize environment variables"
+    cmds:
+      - |
+        cat <<EOF > .env        
+        CLOUDFLARE_PROJECT_NAME="{{ .CLOUDFLARE_PROJECT_NAME }}"
+        CLOUDFLARE_ACCOUNT_ID="{{ .CLOUDFLARE_ACCOUNT_ID }}"
+        CLOUDFLARE_API_TOKEN="{{ .CLOUDFLARE_API_TOKEN }}"
+        EOF
+    requires:
+      vars:
+        - CLOUDFLARE_PROJECT_NAME
+        - CLOUDFLARE_ACCOUNT_ID
+        - CLOUDFLARE_API_TOKEN
+
+  install:
+    desc: "Install dependencies"
+    sources:
+      - "package.json"
+      - "pnpm-lock.yaml"
+    generates:
+      - "node_modules/"
+      - ".pnpm-store/"
+    cmds:
+      - "pnpm install"
+
+  dev:
+    desc: "Run development server"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "vite:dev"
+
+  vite:dev:
+    desc: "Run development server with Vite"
+    deps:
+      - task: "install"
+    cmds:
+      - "pnpm run vite:dev"
+
+  build:
+    desc: "Build project"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "vite:build"
+
+  vite:build:
+    desc: "Build project with Vite"
+    deps:
+      - task: "install"
+      - task: "clean"
+    cmds:
+      - "pnpm run vite:build"
+
+  check:
+    desc: "Check project for errors"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "prettier:check"
+      - task: "typescript:check"
+
+  prettier:check:
+    desc: "Check project formatting with Prettier"
+    deps:
+      - task: "install"
+    cmds:
+      - "pnpm run prettier:check"
+
+  typescript:check:
+    desc: "Check TypeScript types"
+    deps:
+      - task: "install"
+    cmds:
+      - "pnpm run typescript:check"
+
+  test:
+    desc: "Run tests"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "vitest:test"
+
+  vitest:test:
+    desc: "Run tests with vitest"
+    cmds:
+      - "pnpm run vitest:test"
+
+  test:watch:
+    desc: "Run tests in watch mode"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "vitest:test:watch"
+
+  vitest:test:watch:
+    desc: "Run tests with vitest in watch mode"
+    cmds:
+      - "pnpm run vitest:test:watch"
+
+  test:coverage:
+    desc: "Run tests with coverage"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "vitest:test:coverage"
+
+  vitest:test:coverage:
+    desc: "Run tests with vitest with coverage"
+    cmds:
+      - "pnpm run vitest:test:coverage"
+
+  deploy:
+    desc: "Deploy project"
+    deps:
+      - task: "build"
+      - task: "check"
+      - task: "test:coverage"
+    cmds:
+      - task: "cloudflare:deploy"
+
+  cloudflare:deploy:
+    desc: "Deploy project to Cloudflare Pages"
+    cmds:
+      - "pnpm run cloudflare:deploy"
+    requires:
+      vars:
+        - "CLOUDFLARE_ACCOUNT_ID"
+        - "CLOUDFLARE_API_TOKEN"
+        - "CLOUDFLARE_PROJECT_NAME"
+
+  format:
+    desc: "Format project"
+    deps:
+      - task: "install"
+    cmds:
+      - task: "nix:format"
+      - task: "prettier:format"
+
+  nix:format:
+    desc: "Format project with Nix"
+    cmds:
+      - "nix fmt"
+
+  prettier:format:
+    desc: "Format project with Prettier"
+    deps:
+      - task: "install"
+    cmds:
+      - "pnpm run prettier:format"
+
+  clean:
+    desc: "Clean project artifacts"
+    cmds:
+      - task: "vite:clean"
+
+  vite:clean:
+    desc: "Clean 'dist/' directory"
+    cmds:
+      - "rm --recursive --force dist"
